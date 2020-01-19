@@ -1,74 +1,122 @@
-import React from 'react';
+import React, { useState ,useEffect } from 'react';
+import  api  from "./services/api";
 import "./Global.css"
 import "./App.css"
 import "./Sidebar.css"
 import "./Main.css"
 
+
 function App() {
+  const [github_username, setGithubUsername] = useState(''); 
+  const [techs, setTechs] = useState(''); 
+  const [latitude, setLatitude ]= useState(''); 
+  const [longitude, setLongitude ]= useState('');
+  const [devs, setDevs] = useState([]); 
+
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+          setLatitude(latitude);
+          setLongitude(longitude);
+      },
+      (err) => {
+        console.log(err);
+      },
+      {
+        timeout: 30000,
+      }
+    )
+  }, []);
+
+  useEffect(() => {
+    async function buscarDevs() {
+      const response = await api.get("/devs")
+      setDevs(response.data);
+    }
+    buscarDevs();
+  }, []);
+
+  async function addDev(e) {
+    e.preventDefault();
+
+    const response = await api.post("/devs", {
+      github_username, techs, latitude, longitude
+    })
+    setGithubUsername('');
+    setTechs('');
+
+    setDevs([...devs, response.data])
+  }
+
   return (
     <div id="app">
       <aside>
-        <strong>Cadastrar</strong>
-        <form>
+        <strong>Cadastrar Dev</strong>
+        <form onSubmit={addDev}>
           <div className="input-block">
             <label htmlFor="github_username">Usuário do GitHub</label>
-            <input name="github_username" id="github_username" required />
+            <input
+              name="github_username"
+              id="github_username"
+              required
+              value={github_username}
+              onChange={e => setGithubUsername(e.target.value)}
+            />
           </div>
-          
+
           <div className="input-block">
             <label htmlFor="techs">Tecnologias</label>
-            <input name="techs" id="techs" required/>
+            <input
+              name="techs"
+              id="techs"
+              required
+              value={techs}
+              onChange={e => setTechs(e.target.value)}
+            />
           </div>
-          
+
           <div className="input-group">
             <div className="input-block">
               <label htmlFor="latitude">Latitude</label>
-              <input name="latitude" id="latitude" required/>
+              <input
+                name="latitude"
+                id="latitude"
+                required
+                value={latitude}
+                onChange={e => setLatitude(e.target.value)}
+              />
             </div>
 
             <div className="input-block">
               <label htmlFor="longitude">Longitude</label>
-              <input name="longitude" id="longitude" required/>
-            </div>  
-          </div>  
+              <input
+                name="longitude"
+                id="longitude"
+                required
+                value={longitude}
+                onChange={e => setLongitude(e.target.value)}
+              />
+            </div>
+          </div>
           <button type="submit">Salvar</button>
         </form>
       </aside>
       <main>
         <ul>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars3.githubusercontent.com/u/3606676?s=460&v=4" alt="Carlos Aurélio" />
-              <div className="user-info">
-                <strong>Carlos Aurélio</strong>
-                <span>Java, VueJS, Flutter, ReactJS, Javascript</span>  
-              </div>
-            </header>
-            <p>Analista de Sistemas apaixonado por desenvolvimento web.</p>
-            <a href="https://github.com/carlosync">Perfil no GitHub</a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars0.githubusercontent.com/u/2254731?s=460&v=4" alt="Diego Fernandes" />
-              <div className="user-info">
-                <strong>Diego Fernandes</strong>
-                <span>ReactJS, React Native, NodeJs e Javascript</span>
-              </div>
-            </header>
-            <p>CTO na @Rocketseat. Apaixonado pelas melhores tecnologias de desenvolvimento web e mobile.</p>
-            <a href="https://github.com/diego3g">Perfil no GitHub</a>
-          </li>
-          <li className="dev-item">
-            <header>
-              <img src="https://avatars1.githubusercontent.com/u/797072?s=460&v=4" alt="Normandes Junior" />
-              <div className="user-info">
-                <strong>Normandes Junior</strong>
-                <span>Java, Spring Framework, Javascript, TypeScript</span>
-              </div>
-            </header>
-            <p>IT Specialist at @ZupIT and founder of hibicode.com</p>
-            <a href="https://github.com/normandesjr">Perfil no GitHub</a>
-          </li>
+          {devs.map(dev => (
+            <li key={dev._id} className="dev-item">
+              <header>
+                <img src={dev.avatar_url} alt={dev.name} />
+                <div className="user-info">
+                  <strong>{dev.name}</strong>
+                  <span>{dev.techs.join(", ")}</span>
+                </div>
+              </header>
+              <p>{dev.bio}</p>
+              <a href={`https://github.com/${dev.github_username}`}>Perfil no GitHub</a>
+            </li>
+          ))}
         </ul>
       </main>
     </div>
